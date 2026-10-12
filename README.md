@@ -24,7 +24,7 @@ Mean foreground IoU over metal lines and vias on the unseen chips. Higher is bet
 
 ## Results (latest run)
 
-On synthetic SEM-style IC chips (3 unseen test chips), mean foreground IoU over metal lines and vias was 0.570 ± 0.026 for a standard patch-based MLP pixel segmenter and 0.738 ± 0.002 for my per-image-normalised LightGBM with multi-scale filter features, across three seeds.
+On synthetic SEM-style chips (7 train, 3 unseen), mean foreground IoU for metal lines and vias was 0.570 for a scikit-learn MLP on raw 7x7 patches (standardised, untuned) and 0.738 for a per-image-normalised LightGBM with multi-scale filter features, on the same unseen test chips.
 
 | Metric | Value |
 |---|---|
