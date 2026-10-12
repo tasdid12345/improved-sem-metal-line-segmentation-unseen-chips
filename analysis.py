@@ -1,5 +1,5 @@
 """Synthetic SEM-style IC segmentation: MLP on raw 7x7 patches (baseline) vs
-per-image-normalised LightGBM with multi-scale filter features (improved).
+per-image robust-normalised LightGBM with multi-scale filter features (improved).
 Main metric: mean foreground IoU over metal lines and vias on unseen chips."""
 import json, os, sys, time
 import numpy as np
@@ -27,10 +27,13 @@ METHOD = ("Synthetic chips (parallel lines, square vias, blur, noise, per-chip g
           "chip-level train/test split; pixel classifiers scored by mean foreground IoU.")
 NOTES = ("Synthetic data generated in code, not the paper's annotated SEM scans; numbers are not "
          "comparable to the paper's ESD error rates. Split is by chip (7 train, 3 unseen). "
-         "Only LightGBM num_leaves is tuned, by 3-fold chip-grouped CV on training pixels; "
-         "the MLP is untuned. Seeds 42-44 vary model initialisation/bagging only; the data "
-         "and pixel subsample are fixed. The test set is used once per seed for both models "
-         "with no selection on it. No downloads, so no retry logic is needed.")
+         "The improved model uses percentile-based per-image normalisation (2nd-98th percentile), "
+         "which is exactly invariant to the per-chip gain/offset and less sensitive to class "
+         "proportions than mean/std z-scoring. Only LightGBM num_leaves is tuned, by 3-fold "
+         "chip-grouped CV on training pixels; the MLP is untuned. Seeds 42-44 vary model "
+         "initialisation/bagging only; the data and pixel subsample are fixed. The test set is "
+         "used once per seed for both models with no selection on it. No downloads, so no retry "
+         "logic is needed.")
 
 
 def make_chip(rng):
@@ -61,9 +64,16 @@ def raw_patch_feats(img, r=3):
     return sliding_window_view(p, (2 * r + 1, 2 * r + 1)).reshape(H * W, -1)
 
 
+def robust_normalise(img):
+    """Per-image percentile normalisation: invariant to any positive gain and offset,
+    and not driven by the foreground fraction the way mean/std z-scoring is."""
+    lo, hi = np.percentile(img, [2, 98])
+    return ((img - lo) / (hi - lo + 1e-6)).astype(np.float32)
+
+
 def enhanced_feats(img):
-    """Improved: per-image normalised intensity plus a multi-scale filter bank."""
-    z = (img - img.mean()) / (img.std() + 1e-6)              # per-image normalisation
+    """Improved: robust per-image normalised intensity plus a multi-scale filter bank."""
+    z = robust_normalise(img)
     f = [z]
     f += [ndi.gaussian_filter(z, s) for s in (1, 2, 4, 8)]   # Gaussian smoothing
     f += [ndi.gaussian_gradient_magnitude(z, s) for s in (1, 2)]
@@ -172,9 +182,9 @@ def main():
         "metric_name": "mean foreground IoU (metal lines, vias) on unseen chips",
         "higher_is_better": True,
         "baseline": "scikit-learn MLPClassifier on raw 7x7 intensity patches (standardised, untuned)",
-        "improved": ("LightGBM pixel classifier on per-image-normalised intensity plus multi-scale "
-                     "Gaussian, gradient, Laplacian and local-statistics features, balanced class "
-                     "weights, num_leaves chosen by chip-grouped CV"),
+        "improved": ("LightGBM pixel classifier on percentile-based per-image normalised intensity "
+                     "plus multi-scale Gaussian, gradient, Laplacian and local-statistics features, "
+                     "balanced class weights, num_leaves chosen by chip-grouped CV"),
         "metrics": metrics, "notes": NOTES,
     }
     with open("results.json", "w", encoding="utf-8") as f:
