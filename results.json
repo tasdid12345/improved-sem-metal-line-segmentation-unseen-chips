@@ -1,0 +1,33 @@
+{
+  "question": "Can a per-image-normalised LightGBM pixel classifier with multi-scale filter features segment metal lines and vias on unseen synthetic SEM-style chips better than a standard MLP pixel classifier trained on raw patches?",
+  "method": "Synthetic chips (parallel lines, square vias, blur, noise, per-chip gain/offset); chip-level train/test split; pixel classifiers scored by mean foreground IoU.",
+  "dataset": {
+    "name": "Synthetic SEM-style IC chips (generated in code)",
+    "source_url": "https://arxiv.org/abs/2603.16548",
+    "n_rows": 655360,
+    "n_train": 100000,
+    "n_test": 196608,
+    "same_as_paper": false,
+    "baseline_is_papers_method": false
+  },
+  "metric_name": "mean foreground IoU (metal lines, vias) on unseen chips",
+  "higher_is_better": true,
+  "baseline": "scikit-learn MLPClassifier on raw 7x7 intensity patches (standardised, untuned)",
+  "improved": "LightGBM pixel classifier on percentile-based per-image normalised intensity plus multi-scale Gaussian, gradient, Laplacian and local-statistics features, balanced class weights, num_leaves chosen by chip-grouped CV",
+  "metrics": {
+    "baseline_score": 0.5695441460324727,
+    "improved_score": 0.7378573733254372,
+    "improvement": 0.1683132272929645,
+    "baseline_score_std": 0.025946784196798373,
+    "improved_score_std": 0.002149609232031538,
+    "baseline_f1": 0.7170052366595044,
+    "improved_f1": 0.8449033383583565,
+    "baseline_error_rate_pct": 12.823994954427084,
+    "improved_error_rate_pct": 5.537075466579862,
+    "baseline_train_time_s": 15.242479960123697,
+    "improved_train_time_s": 8.455888271331787,
+    "improved_cv_miou": 0.8361539245024976,
+    "improved_best_num_leaves": 63
+  },
+  "notes": "Synthetic data generated in code, not the paper's annotated SEM scans; numbers are not comparable to the paper's ESD error rates. Split is by chip (7 train, 3 unseen). The improved model uses percentile-based per-image normalisation (2nd-98th percentile), which is exactly invariant to the per-chip gain/offset and less sensitive to class proportions than mean/std z-scoring. Only LightGBM num_leaves is tuned, by 3-fold chip-grouped CV on training pixels; the MLP is untuned. Seeds 42-44 vary model initialisation/bagging only; the data and pixel subsample are fixed. The test set is used once per seed for both models with no selection on it. No downloads, so no retry logic is needed."
+}
