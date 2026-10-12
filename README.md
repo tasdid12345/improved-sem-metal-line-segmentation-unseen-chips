@@ -22,6 +22,30 @@ Mean foreground IoU over metal lines and vias on the unseen chips. Higher is bet
 - `results.json`: metrics, baseline and improved scores, and notes.
 - `figures/miou_bar.png`: bar chart of mean IoU with standard deviation across seeds.
 
+## Results (latest run)
+
+On synthetic SEM-style IC chips (3 unseen test chips), mean foreground IoU over metal lines and vias was 0.570 ± 0.026 for a standard patch-based MLP pixel segmenter and 0.738 ± 0.002 for my per-image-normalised LightGBM with multi-scale filter features, across three seeds.
+
+| Metric | Value |
+|---|---|
+| baseline_score | 0.5695 |
+| improved_score | 0.7379 |
+| improvement | 0.1683 |
+| baseline_score_std | 0.02595 |
+| improved_score_std | 0.00215 |
+| baseline_f1 | 0.717 |
+| improved_f1 | 0.8449 |
+| baseline_error_rate_pct | 12.82 |
+| improved_error_rate_pct | 5.537 |
+| baseline_train_time_s | 15.24 |
+| improved_train_time_s | 8.456 |
+| improved_cv_miou | 0.8362 |
+| improved_best_num_leaves | 63 |
+
+Run on 2026-10-12. Full output: [results.json](results.json) · [run.log](run.log)
+
+Notes: Synthetic data generated in code, not the paper's annotated SEM scans; numbers are not comparable to the paper's ESD error rates. Split is by chip (7 train, 3 unseen). The improved model uses percentile-based per-image normalisation (2nd-98th percentile), which is exactly invariant to the per-chip gain/offset and less sensitive to class proportions than mean/std z-scoring. Only LightGBM num_leaves is tuned, by 3-fold chip-grouped CV on training pixels; the MLP is untuned. Seeds 42-44 vary model initialisation/bagging only; the data and pixel subsample are fixed. The test set is used once per seed for both models with no selection on it. No downloads, so no retry logic is needed.
+
 ## Reference
 
 This project is motivated by the following paper:
